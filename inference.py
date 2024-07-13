@@ -48,7 +48,7 @@ def generate_text(prompt, model_path, max_length=30, num_return_sequences=5):
 
 # Set up argparse
 def main():
-    parser = argparse.ArgumentParser(description="Generate text using Darija-GPT")
+    parser = argparse.ArgumentParser(description="Generate text using the pre-trained llama2 ")
     parser.add_argument(
         "--prompt", type=str, required=True, help="Input prompt text in Algerian Darija"
     )
