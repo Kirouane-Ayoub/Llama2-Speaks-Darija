@@ -1,4 +1,4 @@
-# Llama2🦙 Speaks Darija 🇩🇿 
+# Building Llama2🦙 Model from Scratch :  
 
 Welcome to the **[Llama2 Speaks Darija](https://medium.com/@ayoubkirouane3/llama-2-speaks-darija-from-scratch-to-darija-mastery-46157049ef9a)** project! 
 
