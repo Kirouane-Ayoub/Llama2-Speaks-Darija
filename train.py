@@ -1,6 +1,7 @@
 import argparse
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
@@ -18,54 +19,45 @@ def train_model(model, train_loader, eval_loader, train_args, tokenizer):
         optimizer, lr_lambda=lambda step: min(1.0, step / train_args.warmup_steps)
     )
 
-    try:
-        for epoch in range(train_args.n_epochs):
-            model.train()
-            for step, batch in enumerate(train_loader):
-                batch = batch.to(train_args.device)
-                outputs = model(batch)
-                loss = F.cross_entropy(
-                    outputs.view(-1, train_args.vocab_size),
-                    batch.view(-1),
-                    ignore_index=tokenizer.pad_token_id,
+    for epoch in range(train_args.n_epochs):
+        model.train()
+        for step, batch in enumerate(train_loader):
+            input_ids, labels = batch
+            input_ids, labels = (
+                input_ids.to(train_args.device),
+                labels.to(train_args.device),
+            )
+
+            outputs = model(input_ids)
+            loss_fn = nn.CrossEntropyLoss()
+            loss = loss_fn(outputs.view(-1, tokenizer.vocab_size), labels.view(-1))
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
+            optimizer.zero_grad()
+            if step % train_args.log_interval == 0:
+                print(f"Epoch: {epoch}, Step: {step}, Loss: {loss.item()}")
+        model.eval()
+        eval_loss = 0
+        with torch.no_grad():
+            for _, batch in enumerate(eval_loader):
+                input_ids, labels = batch
+
+                input_ids, labels = (
+                    input_ids.to(train_args.device),
+                    labels.to(train_args.device),
                 )
-                loss.backward()
+                outputs = model(input_ids)
 
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
-
-                if step % train_args.log_interval == 0:
-                    print(f"Epoch: {epoch}, Step: {step}, Loss: {loss.item()}")
-
-            model.eval()
-            eval_loss = 0
-            with torch.no_grad():
-                for step, batch in enumerate(eval_loader):
-                    batch = batch.to(train_args.device)
-                    outputs = model(batch)
-                    loss = F.cross_entropy(
-                        outputs.view(-1, train_args.vocab_size),
-                        batch.view(-1),
-                        ignore_index=tokenizer.pad_token_id,
-                    )
-                    eval_loss += loss.item()
-
-            print(f"Epoch: {epoch}, Evaluation Loss: {eval_loss / len(eval_loader)}")
+                loss_fn = nn.CrossEntropyLoss()
+                loss = loss_fn(outputs.view(-1, tokenizer.vocab_size), labels.view(-1))
+                eval_loss += loss.item()
+        print(f"Epoch: {epoch}, Evaluation Loss: {eval_loss / len(eval_loader)}")
 
         # Save the trained model
-        model_save_path = "llama2_darija.pt"
+        model_save_path = "llama2_darija"
         torch.save(model.state_dict(), model_save_path)
         print(f"Model saved to {model_save_path}")
-
-    except Exception as e:
-        print(f"Error occurred during training: {str(e)}")
-        print(f"Error type: {type(e).__name__}")
-        if "batch" in locals():
-            print(f"Batch shape: {batch.shape}")
-            print(f"Batch max value: {torch.max(batch).item()}")
-            print(f"Batch min value: {torch.min(batch).item()}")
-        raise
 
 
 def main(
