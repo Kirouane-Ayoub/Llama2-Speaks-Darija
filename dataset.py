@@ -64,6 +64,13 @@ class TextDataset(Dataset):
             padding="max_length",
             max_length=self.max_length,
             return_tensors="pt",
-        )
+        )  # Ensure PyTorch Tensor output
+
         input_ids = encoding["input_ids"].squeeze()
-        return input_ids
+
+        # Assuming you want to use the input_ids as labels for language modeling
+
+        labels = input_ids.clone()
+
+        labels[:-1] = input_ids[1:]  # Shift labels
+        return input_ids, labels  # Return both input_ids and labels
